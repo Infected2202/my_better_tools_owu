@@ -330,6 +330,19 @@ class Tools:
                 return "Invalid repo format. Use owner/repo"
 
             owner, repo_name = owner_repo
+
+            # Open WebUI может передать сюда не строку, а объект FieldInfo
+            # (дефолт от Field(default="")), если параметр path не указан
+            # при вызове инструмента. urllib.parse.quote принимает только
+            # str или bytes, поэтому перед вызовом нормализуем значение.
+            if not isinstance(path, str):
+                path = ""
+
+            if not isinstance(branch, str) or not branch.strip():
+                branch = None
+            else:
+                branch = branch.strip()
+
             endpoint = (
                 f"/repos/{owner}/{repo_name}/contents/{quote(path) if path else ''}"
             )
