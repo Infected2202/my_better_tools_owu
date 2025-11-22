@@ -209,17 +209,21 @@ class Tools:
             await __event_emitter__(
                 {
                     "type": "status",
-                    "data": {"description": f"Reading {file_path}", "done": False},
+                    "data": {"description": f"Reading {sanitized_path}", "done": False},
                 }
             )
 
         try:
+            sanitized_path = str(file_path).strip() if file_path is not None else ""
+            if not sanitized_path:
+                return "Invalid file path. Provide a non-empty path string"
+
             owner_repo = self._split_repo(repo)
             if not owner_repo:
                 return "Invalid repo format. Use owner/repo"
 
             owner, repo_name = owner_repo
-            endpoint = f"/repos/{owner}/{repo_name}/contents/{quote(file_path)}"
+            endpoint = f"/repos/{owner}/{repo_name}/contents/{quote(sanitized_path)}"
             params = {"ref": branch} if branch else {}
 
             file_data = self._make_request(endpoint, params)
@@ -246,9 +250,9 @@ class Tools:
             lang = self._detect_language(ext)
 
             output = []
-            output.append(f"# {file_data.get('name', file_path)}\n\n")
+            output.append(f"# {file_data.get('name', sanitized_path)}\n\n")
             output.append(f"**Repository:** {repo}\n")
-            output.append(f"**Path:** `{file_path}`\n")
+            output.append(f"**Path:** `{sanitized_path}`\n")
             if branch:
                 output.append(f"**Branch:** {branch}\n")
             output.append(f"**Size:** {file_size} bytes\n\n")
@@ -263,16 +267,22 @@ class Tools:
             )
 
             if __event_emitter__:
-                file_url = f"https://github.com/{repo}/blob/{branch or self.valves.default_branch}/{file_path}"
+                file_url = f"https://github.com/{repo}/blob/{branch or self.valves.default_branch}/{sanitized_path}"
                 await __event_emitter__(
                     {
                         "type": "citation",
                         "data": {
                             "document": ["".join(output)],
                             "metadata": [
-                                {"source": f"GitHub: {repo}", "file_path": file_path}
+                                {
+                                    "source": f"GitHub: {repo}",
+                                    "file_path": sanitized_path,
+                                }
                             ],
-                            "source": {"name": f"{repo}/{file_path}", "url": file_url},
+                            "source": {
+                                "name": f"{repo}/{sanitized_path}",
+                                "url": file_url,
+                            },
                         },
                     }
                 )
